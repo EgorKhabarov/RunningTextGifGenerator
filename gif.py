@@ -2,7 +2,7 @@ import time
 from io import BytesIO
 from typing import Callable, Generator, Any, Literal
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, GifImagePlugin
 
 
 color_border = "#000000"
@@ -41,8 +41,20 @@ class GIF:
         self.rows = 9 * rows
         self.debug = debug
         self.__fragments: list[
-            tuple[Generator[Image, Any, None], Generator[int, Any, None], int]
+            tuple[
+                Generator[Image.Image, Any, None] | list[Image.Image],
+                Generator[int, Any, None] | list[int],
+                int,
+            ]
         ] = []
+
+    @property
+    def columns_pixels(self):
+        return self.columns * 2 + self.columns + 2 + 5 + 6
+
+    @property
+    def rows_pixels(self):
+        return self.rows * 2 + self.rows + 3 + 5 + 5
 
     def __generate_frame(
         self, func: Callable[[int, int], bool] = lambda c, r: False
@@ -62,8 +74,8 @@ class GIF:
         :param func: (column, row) -> is_on: bool
         :return:
         """
-        columns_pixels = self.columns * 2 + self.columns + 2 + 5 + 6
-        rows_pixels = self.rows * 2 + self.rows + 3 + 5 + 5
+        columns_pixels = self.columns_pixels
+        rows_pixels = self.rows_pixels
 
         image = Image.new("RGBA", (columns_pixels, rows_pixels), (0, 0, 0, 0))
         draw = ImageDraw.Draw(image)
@@ -166,6 +178,8 @@ class GIF:
         outro: bool = False,
         direction: Literal["left", "right", "up", "down", "none"] = "left",
     ) -> Image.Image:
+        if direction not in ("left", "right", "up", "down", "none"):
+            raise ValueError(direction)
         now_fragment_index = len(self.__fragments) + 1
         text_cols, text_rows = text_image.size
         new_image_cols, new_image_rows = text_cols, text_rows
@@ -217,13 +231,30 @@ class GIF:
             image.save(f"temp_image_{now_fragment_index}.png", "png")
         return image
 
-    def add_fragment(
+    @staticmethod
+    def __extract_gif_frames(
+        gif_file: GifImagePlugin.GifImageFile, speed: int = 1
+    ) -> Generator[tuple[GifImagePlugin.GifImageFile, int], Any, None]:
+        frame_index = 0
+
+        while True:
+            if frame_index % speed != 0:
+                frame_index += 1
+                continue
+            try:
+                gif_file.seek(frame_index)
+                yield gif_file.copy(), gif_file.info.get("duration", 0)
+            except EOFError:
+                break
+            frame_index += 1
+
+    def add_text_fragment(
         self,
         text: str,
         *,
+        font_path: str | BytesIO = "Monocraft.otf",
         duration: int = 20,
         speed: int = 1,
-        font_path: str | BytesIO = "Monocraft.otf",
         intro: bool = False,
         outro: bool = False,
         direction: Literal["left", "right", "up", "down", "none"] = "left",
@@ -287,13 +318,50 @@ class GIF:
         self.__fragments.append((frames, durations, frames_count))
         return now_fragment_index
 
-    def clear_fragments(self):
+    def add_gif_fragment(
+        self,
+        gif_path: GifImagePlugin.GifImageFile | str,
+        *,
+        duration: int = ...,
+        speed: int = 1,
+    ) -> int:
+        now_fragment_index = len(self.__fragments) + 1
+
+        if isinstance(gif_path, str):
+            gif_file = Image.open(gif_path)
+        elif isinstance(gif_path, GifImagePlugin.GifImageFile):
+            gif_file = gif_path
+        else:
+            raise ValueError("Wrong type")
+
+        columns, rows = gif_file.size
+        if (columns, rows) != (self.columns_pixels, self.rows_pixels):
+            raise ValueError(
+                f"The size of this gif does not match the size of the current gif "
+                f"({columns}, {rows}) != ({self.columns_pixels}, {self.rows_pixels})"
+                f"{gif_file}"
+            )
+
+        frames = []
+        durations = []
+        for frame, duration_ in self.__extract_gif_frames(gif_file, speed):
+            frames.append(frame)
+            durations.append(duration_)
+
+        frames_count = len(frames)
+        if duration is not ...:
+            durations = (duration for _ in range(frames_count))
+
+        self.__fragments.append((frames, durations, frames_count))
+        return now_fragment_index
+
+    def clear_fragments(self) -> None:
         self.__fragments.clear()
 
-    def remove_fragment(self, index: int):
+    def remove_fragment(self, index: int) -> None:
         self.__fragments.pop(index)
 
-    def save(self, path: str | BytesIO):
+    def save(self, path: str | BytesIO) -> None:
         """
         Creates a looping GIF from a list of images.
 
@@ -313,7 +381,7 @@ class GIF:
         if not count:
             raise ValueError("You have not added any fragments.")
 
-        name = path if isinstance(path, str) else path.name or path
+        name = path if isinstance(path, str) else getattr(path, "name", path)
         start = time.perf_counter()
         frames = (
             print_progress_bar(n, count, name, start) or i
@@ -322,6 +390,7 @@ class GIF:
 
         next(frames).save(
             fp=path,
+            format="gif",
             save_all=True,
             append_images=frames,
             duration=durations,
