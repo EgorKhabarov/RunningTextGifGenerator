@@ -1,6 +1,10 @@
 
 # GIF generator with a running text line
 
+```shell
+pip install -r requirements.txt
+```
+
 ```python
 from gif import GIF
 gif = GIF()
