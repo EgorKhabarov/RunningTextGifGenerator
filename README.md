@@ -11,7 +11,7 @@ gif = GIF()
 gif.add_text_fragment("text", intro=True, outro=True)
 gif.save(path="text.gif")
 ```
-![text.gif](text.gif)
+![text.gif](readme_content/text.gif)
 
 You can specify the width and height of the screen.
 By default they are `GIF(columns: int = 79, rows: int = 1)`.
@@ -31,7 +31,7 @@ This method returns the index of the added fragment.
 | outro: bool = False                                                 | Whether to fade the text off the screen                                                                       |
 | direction: Literal\["left", "right", "up", "down", "none"] = "left" | The direction of the text movement                                                                            |
 
-# add_gif_fragment
+### add_gif_fragment
 
 You can add a fragment of a GIF file using the `add_gif_fragment` method.
 This method returns the index of the added fragment.
@@ -49,7 +49,7 @@ Deletes a fragment by index.
 Removes all fragments.
 
 ### save
-Saves a gif to a path or file.
-`path: str | BytesIO`
+Saves a gif to a path or file `path: str | BytesIO`.
+Calls `clear_fragments` after saving.
 
 The font can be downloaded [here](https://fonts-online.ru/fonts/monocraft)

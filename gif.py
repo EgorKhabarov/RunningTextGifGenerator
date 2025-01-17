@@ -5,13 +5,15 @@ from typing import Callable, Generator, Any, Literal
 from PIL import Image, ImageDraw, ImageFont, GifImagePlugin
 
 
-color_border = "#000000"
-color_background = "#222222"
-color_glare = "#666666"
-color_pixel_off_light = "#880000"
-color_pixel_off_dark = "#660000"
-color_pixel_on_light = "#FF6666"
-color_pixel_on_dark = "#FF0000"
+color_config = {
+    "color_border": "#000000",
+    "color_background": "#222222",
+    "color_glare": "#666666",
+    "color_pixel_off_light": "#880000",
+    "color_pixel_off_dark": "#660000",
+    "color_pixel_on_light": "#FF6666",
+    "color_pixel_on_dark": "#FF0000",
+}
 
 
 def print_progress_bar(x: int, y: int, name: str, start: float):
@@ -25,12 +27,14 @@ def print_progress_bar(x: int, y: int, name: str, start: float):
     print(
         f"\r[{arrow:<{bar_length}}][{x}/{y} frames]"
         f"[{int(x / y * 100):>3}%][{time.perf_counter() - start:>5.2f}s][{name}]",
-        end="",
+        end="\n" if x == y else "",
         flush=True,
     )
 
 
 class GIF:
+    color_config: dict[str, str] = color_config
+
     def __init__(self, columns: int = 79, rows: int = 1, debug: bool = False):
         if columns < 6:
             raise ValueError("Minimum width = 6")
@@ -56,8 +60,8 @@ class GIF:
     def rows_pixels(self):
         return self.rows * 2 + self.rows + 3 + 5 + 5
 
-    def __generate_frame(
-        self, func: Callable[[int, int], bool] = lambda c, r: False
+    def generate_frame(
+        self, func: Callable[[int, int], bool] = lambda c, r: False,
     ) -> Image.Image:
         """
 
@@ -81,16 +85,16 @@ class GIF:
         draw = ImageDraw.Draw(image)
         # border
         draw.rounded_rectangle(
-            (0, 0, columns_pixels - 1, rows_pixels - 1), radius=7, fill=color_border
+            (0, 0, columns_pixels - 1, rows_pixels - 1), radius=7, fill=color_config["color_border"]
         )
         # background
-        draw.rectangle((5, 5, columns_pixels - 6, rows_pixels - 6), color_background)
+        draw.rectangle((5, 5, columns_pixels - 6, rows_pixels - 6), color_config["color_background"])
         # glare
         draw.line(
-            (6, rows_pixels - 6, columns_pixels - 7, rows_pixels - 6), color_glare
+            (6, rows_pixels - 6, columns_pixels - 7, rows_pixels - 6), color_config["color_glare"]
         )
         draw.line(
-            (columns_pixels - 6, 6, columns_pixels - 6, rows_pixels - 7), color_glare
+            (columns_pixels - 6, 6, columns_pixels - 6, rows_pixels - 7), color_config["color_glare"]
         )
 
         # pixels
@@ -99,6 +103,9 @@ class GIF:
                 is_on = func(column, row)
                 start_pixel_column = 8 + (column * 2) + column - 1
                 start_pixel_row = 8 + (row * 2) + row - 1
+                string_is_on = "on" if is_on else "off"
+                color_dark_pixel = self.color_config[f"color_pixel_{string_is_on}_dark"]
+                color_light_pixel = self.color_config[f"color_pixel_{string_is_on}_light"]
                 draw.rectangle(
                     (
                         start_pixel_column,
@@ -106,15 +113,15 @@ class GIF:
                         start_pixel_column + 1,
                         start_pixel_row + 1,
                     ),
-                    color_pixel_on_dark if is_on else color_pixel_off_dark,
+                    color_dark_pixel,
                 )
                 draw.point(
                     (start_pixel_column, start_pixel_row),
-                    color_pixel_on_light if is_on else color_pixel_off_light,
+                    color_light_pixel,
                 )
         return image
 
-    def __generate_text_image(self, text: str, font_path: str | BytesIO) -> Image.Image:
+    def generate_text_image(self, text: str, font_path: str | BytesIO) -> Image.Image:
         now_fragment_index = len(self.__fragments) + 1
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
@@ -171,12 +178,12 @@ class GIF:
 
         return text_img
 
-    def __process_text_image(
+    def process_text_image(
         self,
         text_image: Image.Image,
         intro: bool = False,
         outro: bool = False,
-        direction: Literal["left", "right", "up", "down", "none"] = "left",
+        direction: str | Literal["left", "right", "up", "down", "none"] = "left",
     ) -> Image.Image:
         if direction not in ("left", "right", "up", "down", "none"):
             raise ValueError(direction)
@@ -232,32 +239,113 @@ class GIF:
         return image
 
     @staticmethod
-    def __extract_gif_frames(
-        gif_file: GifImagePlugin.GifImageFile, speed: int = 1
+    def extract_gif_frames(
+        gif_file: GifImagePlugin.GifImageFile | BytesIO | str,
+        speed: int = 1,
     ) -> Generator[tuple[GifImagePlugin.GifImageFile, int], Any, None]:
         frame_index = 0
+
+        if isinstance(gif_file, (str, BytesIO)):
+            gif = Image.open(gif_file)
+        elif isinstance(gif_file, GifImagePlugin.GifImageFile):
+            gif = gif_file
+        else:
+            raise ValueError("Wrong type")
 
         while True:
             if frame_index % speed != 0:
                 frame_index += 1
                 continue
             try:
-                gif_file.seek(frame_index)
-                yield gif_file.copy(), gif_file.info.get("duration", 0)
+                gif.seek(frame_index)
+                yield gif.copy(), gif.info.get("duration", 0)
             except EOFError:
                 break
             frame_index += 1
+
+    def add_image_fragment(
+        self,
+        image_path: Image.Image | str,
+        *,
+        duration: int = 20,
+        speed: int = 1,
+        direction: str | Literal["left", "right", "up", "down", "none"] = "left",
+    ):
+        """
+
+        :param image_path:
+        :param duration:
+        :param speed:
+        :param direction:
+        :return:
+        """
+        if direction not in ("left", "right", "up", "down", "none"):
+            raise ValueError(direction)
+
+        image: Image.Image = image_path
+
+        if isinstance(image_path, str):
+            image = Image.open(image_path)
+
+        columns, rows = image.size
+        if (columns, rows) < (self.columns, self.rows):
+            raise ValueError(
+                f"The size of this image does not match the size of the current gif "
+                f"({columns}, {rows}) != ({self.columns_pixels}, {self.rows_pixels})"
+                f"{image}"
+            )
+
+        if direction in ("left", "right"):
+            count = columns - self.columns or 1
+        elif direction in ("up", "down"):
+            count = rows - self.rows or 1
+        else:  # direction == "none"
+            count = 1
+
+        def check_pixel(n: int):
+            match direction:
+                case "left":
+                    start_col, start_row = n, 0
+                case "right":
+                    start_col, start_row = -(n + self.columns - columns), 0
+                case "up":
+                    start_col, start_row = 0, n
+                case "down":
+                    start_col, start_row = 0, -(n + self.rows - rows)
+                case _:  # "none"
+                    start_col, start_row = 0, 0
+
+            def func(c: int, r: int) -> bool:
+                try:
+                    c += start_col
+                    r += start_row
+                    if c < 0 or r < 0:
+                        return False
+                    return image.getpixel((c, r)) == (0, 0, 0)
+                except IndexError:
+                    return False
+
+            return func
+
+        frames = (
+            self.generate_frame(func=check_pixel(n)) for n in range(0, count, speed)
+        )
+
+        frames_count = len(range(0, count, speed))
+        durations = (duration for _ in range(frames_count))
+        self.__fragments.append((frames, durations, frames_count))
+        return len(self.__fragments)
 
     def add_text_fragment(
         self,
         text: str,
         *,
-        font_path: str | BytesIO = "Monocraft.otf",
+        font_path: str | BytesIO = "./fonts/Monocraft.otf",
         duration: int = 20,
         speed: int = 1,
-        intro: bool = False,
-        outro: bool = False,
-        direction: Literal["left", "right", "up", "down", "none"] = "left",
+        intro: bool = True,
+        outro: bool = True,
+        direction: str | Literal["left", "right", "up", "down", "none"] = "left",
     ) -> int:
         """
 
@@ -270,64 +358,23 @@ class GIF:
         :param direction:
         :return: Fragment index
         """
-        now_fragment_index = len(self.__fragments) + 1
+        if direction not in ("left", "right", "up", "down", "none"):
+            raise ValueError(direction)
 
-        text_img = self.__generate_text_image(text, font_path)
-        # text_cols, text_rows = text_img.size
-        data = self.__process_text_image(text_img, intro, outro, direction)
-        image_cols, image_rows = data.size
-
-        if direction in ("left", "right"):
-            count = image_cols - self.columns or 1
-        elif direction in ("up", "down"):
-            count = image_rows - self.rows or 1
-        else:  # direction == "none"
-            count = 1
-
-        def check_pixel(n: int):
-            match direction:
-                case "left":
-                    start_col, start_row = n, 0
-                case "right":
-                    start_col, start_row = -(n + self.columns - image_cols), 0
-                case "up":
-                    start_col, start_row = 0, n
-                case "down":
-                    start_col, start_row = 0, -(n + self.rows - image_rows)
-                case _:  # "none"
-                    start_col, start_row = 0, 0
-
-            def _(c: int, r: int) -> bool:
-                try:
-                    c += start_col
-                    r += start_row
-                    if c < 0 or r < 0:
-                        return False
-                    return data.getpixel((c, r)) == (0, 0, 0)
-                except IndexError:
-                    return False
-
-            return _
-
-        frames = (
-            self.__generate_frame(func=check_pixel(n)) for n in range(0, count, speed)
-        )
-
-        frames_count = len(range(0, count, speed))
-        durations = (duration for _ in range(frames_count))
-        self.__fragments.append((frames, durations, frames_count))
-        return now_fragment_index
+        text_img = self.generate_text_image(text, font_path)
+        image = self.process_text_image(text_img, intro, outro, direction)
+        return self.add_image_fragment(image, duration=duration, speed=speed, direction=direction)
 
     def add_gif_fragment(
         self,
-        gif_path: GifImagePlugin.GifImageFile | str,
+        gif_path: GifImagePlugin.GifImageFile | BytesIO | str,
         *,
         duration: int = ...,
         speed: int = 1,
     ) -> int:
         now_fragment_index = len(self.__fragments) + 1
 
-        if isinstance(gif_path, str):
+        if isinstance(gif_path, (str, BytesIO)):
             gif_file = Image.open(gif_path)
         elif isinstance(gif_path, GifImagePlugin.GifImageFile):
             gif_file = gif_path
@@ -344,7 +391,7 @@ class GIF:
 
         frames = []
         durations = []
-        for frame, duration_ in self.__extract_gif_frames(gif_file, speed):
+        for frame, duration_ in self.extract_gif_frames(gif_file, speed):
             frames.append(frame)
             durations.append(duration_)
 
@@ -397,3 +444,4 @@ class GIF:
             loop=0,
         )
         print_progress_bar(count, count, name, start)
+        self.clear_fragments()
