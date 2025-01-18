@@ -1,5 +1,6 @@
 import time
 from io import BytesIO
+from pathlib import Path
 from typing import Callable, Generator, Any, Literal
 
 from PIL import Image, ImageDraw, ImageFont, GifImagePlugin
@@ -16,7 +17,7 @@ color_config = {
 }
 
 
-def print_progress_bar(x: int, y: int, name: str, start: float):
+def __print_progress_bar__(x: int, y: int, name: str, start: float):
     bar_length = 50
 
     if y == 0:
@@ -32,18 +33,39 @@ def print_progress_bar(x: int, y: int, name: str, start: float):
     )
 
 
+print_progress_bar = __print_progress_bar__
+
+
 class GIF:
     color_config: dict[str, str] = color_config
+    default_font: str = "./fonts/Monocraft.otf"
+    __debug_template: str = "debug_image_frame_{fragment_index}.png"
 
-    def __init__(self, columns: int = 79, rows: int = 1, debug: bool = False):
+    def __init__(
+        self,
+        columns: int = 79,
+        rows: int = 9,
+        *,
+        default_font: str = ...,
+        save_path: str | BytesIO | None = None,
+        debug: bool = False,
+        debug_template: str = ...,
+        progress_bar: bool = True,
+    ):
         if columns < 6:
             raise ValueError("Minimum width = 6")
         if rows < 1:
             raise ValueError("Minimum height = 1")
 
         self.columns = columns
-        self.rows = 9 * rows
+        self.rows = rows
+        if default_font is not ...:
+            self.default_font = default_font
+        self.save_path = save_path
         self.debug = debug
+        if debug_template is not ...:
+            self.debug_template = debug_template
+        self.progress_bar = progress_bar
         self.__fragments: list[
             tuple[
                 Generator[Image.Image, Any, None] | list[Image.Image],
@@ -51,6 +73,26 @@ class GIF:
                 int,
             ]
         ] = []
+
+    def __enter__(self):
+        if not self.save_path:
+            raise ValueError("When using the context manager, you need to specify save_path")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.save()
+
+    @property
+    def debug_template(self):
+        return self.__debug_template
+
+    @debug_template.setter
+    def debug_template(self, debug_template: str):
+        debug_path = Path(debug_template)
+        if debug_path.is_dir():
+            raise ValueError("The debug_template must point to a file")
+        debug_path.parent.mkdir(parents=True, exist_ok=True)
+        self.__debug_template = debug_template
 
     @property
     def columns_pixels(self):
@@ -121,8 +163,9 @@ class GIF:
                 )
         return image
 
-    def generate_text_image(self, text: str, font_path: str | BytesIO) -> Image.Image:
+    def generate_text_image(self, text: str, font_path: str | BytesIO = ...) -> Image.Image:
         now_fragment_index = len(self.__fragments) + 1
+        font_path = self.default_font if font_path is ... else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
             int(font.getbbox(text)[2]) - 6,
@@ -139,7 +182,7 @@ class GIF:
         draw_text.text(xy=(0, 0), text=text, fill="#000000", font=font)
 
         if self.debug:
-            temp_text_img.save(f"temp_image_{now_fragment_index}.png", "png")
+            temp_text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
 
         text_cols = temp_img_cols * self.rows // temp_img_rows
         img_cols = text_cols
@@ -154,7 +197,7 @@ class GIF:
         draw_text_resized = ImageDraw.Draw(im=text_img)
 
         if self.debug:
-            text_img.save(f"temp_image_{now_fragment_index}.png", "png")
+            text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
 
         for resized_column_pixel in range(text_cols):
             for resized_row_pixel in range(img_rows):
@@ -174,7 +217,7 @@ class GIF:
                 )
 
         if self.debug:
-            text_img.save(f"temp_image_{now_fragment_index}.png", "png")
+            text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
 
         return text_img
 
@@ -190,10 +233,6 @@ class GIF:
         now_fragment_index = len(self.__fragments) + 1
         text_cols, text_rows = text_image.size
         new_image_cols, new_image_rows = text_cols, text_rows
-        if new_image_cols < self.columns and not (intro and outro):
-            new_image_cols = self.columns
-        if new_image_rows < self.rows and not (intro and outro):
-            new_image_rows = self.rows
         paste_col, paste_row = 0, 0
 
         match direction:
@@ -203,30 +242,48 @@ class GIF:
                     paste_col += self.columns
                 if outro:
                     new_image_cols += self.columns
+                elif text_cols < self.columns:
+                    new_image_cols += self.columns - text_cols
             case "right":
                 if intro:
                     new_image_cols += self.columns
+                elif text_cols < self.columns:
+                    new_image_cols += self.columns - text_cols
+
                 if outro:
                     new_image_cols += self.columns
                     paste_col += self.columns
-                if not (intro and outro):
+                    # if text_cols < self.columns:
+                    #     new_image_cols -= self.columns - text_cols
+                    #     paste_col -= self.columns - text_cols
+                # elif text_cols > self.columns:
+                #     new_image_cols += text_cols - self.columns
+                #     paste_col += text_cols - self.columns
+                elif text_cols < self.columns:
                     new_image_cols += self.columns - text_cols
                     paste_col += self.columns - text_cols
             case "up":
+                if new_image_cols < self.columns:
+                    new_image_cols = self.columns
                 if intro:
                     new_image_rows += self.rows
                     paste_row += self.rows
                 if outro:
                     new_image_rows += self.rows
             case "down":
+                if new_image_cols < self.columns:
+                    new_image_cols = self.columns
                 if intro:
                     new_image_rows += self.rows
                 if outro:
                     new_image_rows += self.rows
                     paste_row += self.rows
-            case "none":
-                if new_image_rows < self.columns:
-                    new_image_rows = self.columns
+            # case "none":
+
+        if new_image_cols < self.columns:
+            new_image_cols = self.columns
+        if new_image_rows < self.rows:
+            new_image_rows = self.rows
 
         image = Image.new(
             mode="RGB",
@@ -235,7 +292,7 @@ class GIF:
         )
         image.paste(text_image, (paste_col, paste_row))
         if self.debug:
-            image.save(f"temp_image_{now_fragment_index}.png", "png")
+            image.save(self.debug_template.format(fragment_index=now_fragment_index))
         return image
 
     @staticmethod
@@ -340,7 +397,7 @@ class GIF:
         self,
         text: str,
         *,
-        font_path: str | BytesIO = "./fonts/Monocraft.otf",
+        font_path: str | BytesIO = ...,
         duration: int = 20,
         speed: int = 1,
         intro: bool = True,
@@ -408,7 +465,7 @@ class GIF:
     def remove_fragment(self, index: int) -> None:
         self.__fragments.pop(index)
 
-    def save(self, path: str | BytesIO) -> None:
+    def save(self, path: str | BytesIO = ...) -> None:
         """
         Creates a looping GIF from a list of images.
 
@@ -428,20 +485,23 @@ class GIF:
         if not count:
             raise ValueError("You have not added any fragments.")
 
-        name = path if isinstance(path, str) else getattr(path, "name", path)
+        save_path = self.save_path if path is ... else path
+        name = save_path if isinstance(save_path, str) else getattr(save_path, "name", save_path)
         start = time.perf_counter()
-        frames = (
-            print_progress_bar(n, count, name, start) or i
-            for n, i in enumerate(frames, 0)
-        )
+        if self.progress_bar:
+            frames = (
+                print_progress_bar(n, count, name, start) or i
+                for n, i in enumerate(frames, 0)
+            )
 
         next(frames).save(
-            fp=path,
+            fp=save_path,
             format="gif",
             save_all=True,
             append_images=frames,
             duration=durations,
             loop=0,
         )
-        print_progress_bar(count, count, name, start)
+        if self.progress_bar:
+            print_progress_bar(count, count, name, start)
         self.clear_fragments()
