@@ -39,7 +39,7 @@ print_progress_bar = __print_progress_bar__
 
 class GIF:
     color_config: dict[str, str] = color_config
-    default_font: str = "./fonts/Monocraft.otf"
+    default_font_path: str = "./fonts/Monocraft.otf"
     __debug_template: str = "debug_image_frame_{fragment_index}.png"
 
     def __init__(
@@ -47,7 +47,7 @@ class GIF:
         columns: int = 79,
         rows: int = 9,
         *,
-        default_font: str | None = None,
+        default_font_path: str | None = None,
         save_path: (
             str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
         ) = None,
@@ -62,8 +62,8 @@ class GIF:
 
         self.columns = columns
         self.rows = rows
-        if default_font is not None:
-            self.default_font = default_font
+        if default_font_path is not None:
+            self.default_font_path = default_font_path
         self.save_path = save_path
         self.debug = debug
         if debug_template is not None:
@@ -182,7 +182,7 @@ class GIF:
         self, text: str, font_path: str | BytesIO | None = None
     ) -> Image.Image:
         now_fragment_index = len(self.__fragments) + 1
-        font_path = self.default_font if font_path is None else font_path
+        font_path = self.default_font_path if font_path is None else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
             int(font.getbbox(text)[2]) - 6,

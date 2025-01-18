@@ -2,6 +2,10 @@
 # GIF generator with a running text line
 
 ```shell
+git clone https://github.com/EgorKhabarov/RunningTextGifGenerator
+```
+
+```shell
 pip install -r requirements.txt
 ```
 
@@ -42,15 +46,13 @@ This method returns the index of the added fragment.
 | duration: int = 20             | The speed of each frame within this fragment in milliseconds                                                  |
 | speed: int = 1                 | Allows you to adjust the speed by selecting every x frame.<br>For example, `speed=2` takes every second frame |
 
-#### Example
+#### Example:
 
 <table><tbody>
 <tr><td rowspan="2">
 
 ```python
 from gif import GIF
-
-
 gif = GIF(columns=22, rows=24)
 gif.add_image_fragment(
     image_path="dino.png",
@@ -84,6 +86,17 @@ This method returns the index of the added fragment.
 | gif_path: Image.Image \| BytesIO \| str | Gif file or path to it<br/>`Image.open(gif_path)`                                                             |
 | duration: int \| None = None            | The speed of gif fragment in milliseconds<br/>By default, the gif speed is taken                              |
 | speed: int = 1                          | Allows you to adjust the speed by selecting every x frame.<br>For example, `speed=2` takes every second frame |
+
+#### Example:
+
+```python
+from gif import GIF
+gif = GIF()
+gif.add_text_fragment("this is text.gif:")
+gif.add_gif_fragment(gif_path="text.gif")
+gif.save(path="text_text.gif")
+```
+![text_text.gif](readme_content/text_text.gif)
 
 ### remove_fragment
 Deletes a fragment by index.
