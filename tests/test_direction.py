@@ -22,7 +22,10 @@ def compare(gif: GIF, num: int, intro: bool, outro: bool):
     ) as result_file:
         result_content = result_file.read()
 
-    return test_content == result_content
+    result = test_content == result_content
+    if not result:
+        print(f"{len(test_content)=} {len(result_content)=}")
+    return result
 
 
 def test_direction():
