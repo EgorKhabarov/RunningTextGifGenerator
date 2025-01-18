@@ -4,7 +4,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Callable, Generator, Any, Literal
 
-from PIL import Image, ImageDraw, ImageFont, GifImagePlugin
+from PIL import Image, ImageDraw, ImageFont
 
 
 color_config = {
@@ -291,7 +291,6 @@ class GIF:
                 if outro:
                     new_image_rows += self.rows
                     paste_row += self.rows
-            # case "none":
 
         if new_image_cols < self.columns:
             new_image_cols = self.columns
@@ -375,7 +374,7 @@ class GIF:
             count = columns - self.columns or 1
         elif direction in ("up", "down"):
             count = rows - self.rows or 1
-        else:  # direction == "none"
+        else:
             count = 1
 
         def check_pixel(n: int):
@@ -388,7 +387,7 @@ class GIF:
                     start_col, start_row = 0, n
                 case "down":
                     start_col, start_row = 0, -(n + self.rows - rows)
-                case _:  # "none"
+                case _:
                     start_col, start_row = 0, 0
 
             def func(c: int, r: int) -> bool:
@@ -398,6 +397,8 @@ class GIF:
                     if c < 0 or r < 0:
                         return False
                     pixel = image.getpixel((c, r))
+                    if not pixel or isinstance(pixel, float):
+                        return False
                     return pixel[:3] == (0, 0, 0)
                 except IndexError:
                     return False
