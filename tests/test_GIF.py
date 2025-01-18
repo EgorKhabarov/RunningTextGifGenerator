@@ -1,9 +1,8 @@
 from io import BytesIO
+from pathlib import Path
 
 from gif import GIF
 
-
-# GIF.default_font = "/fonts/Monocraft.otf"
 
 def compare(gif: GIF, num: int):
     test_file = BytesIO()
@@ -11,7 +10,16 @@ def compare(gif: GIF, num: int):
     test_file.seek(0)
     test_content = test_file.read()
 
-    with open(f"tests/result_images/test_GIF/{num}/test_GIF_{num}.gif", "rb") as result_file:
+    with open(
+        Path(
+            "tests",
+            "result_images",
+            "test_GIF",
+            f"{num}",
+            f"test_GIF_{num}.gif",
+        ),
+        "rb",
+    ) as result_file:
         result_content = result_file.read()
 
     return test_content == result_content
@@ -20,7 +28,13 @@ def compare(gif: GIF, num: int):
 # noinspection PyPep8Naming
 def test_GIF():
     gif = GIF(debug=False, progress_bar=False)
-    gif.debug_template = f"tests/debug_images/test_GIF/1/test_GIF_1_{{fragment_index}}.png"
+    gif.debug_template = Path(
+        "tests",
+        "debug_images",
+        "test_GIF",
+        "1",
+        "test_GIF_1_{fragment_index}.png",
+    )
 
     # add_text_fragment
     gif.add_text_fragment("text fragment", intro=True, outro=True)
@@ -37,7 +51,10 @@ def test_GIF():
     gif.add_image_fragment(text_image)
 
     # add_gif_fragment
-    with GIF(save_path="tests/tests_data/test_GIF/1/gif1.gif", progress_bar=False) as temp_gif:
+    with GIF(
+        save_path="tests/tests_data/test_GIF/1/gif1.gif",
+        progress_bar=False,
+    ) as temp_gif:
         temp_gif.add_text_fragment("gif 1")
 
     gif.add_gif_fragment("tests/tests_data/test_GIF/1/gif1.gif")

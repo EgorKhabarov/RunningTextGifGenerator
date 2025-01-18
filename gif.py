@@ -1,5 +1,6 @@
 import time
 from io import BytesIO
+from os import PathLike
 from pathlib import Path
 from typing import Callable, Generator, Any, Literal
 
@@ -46,10 +47,12 @@ class GIF:
         columns: int = 79,
         rows: int = 9,
         *,
-        default_font: str = ...,
-        save_path: str | BytesIO | None = None,
+        default_font: str | None = None,
+        save_path: (
+            str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
+        ) = None,
         debug: bool = False,
-        debug_template: str = ...,
+        debug_template: str | None = None,
         progress_bar: bool = True,
     ):
         if columns < 6:
@@ -59,11 +62,11 @@ class GIF:
 
         self.columns = columns
         self.rows = rows
-        if default_font is not ...:
+        if default_font is not None:
             self.default_font = default_font
         self.save_path = save_path
         self.debug = debug
-        if debug_template is not ...:
+        if debug_template is not None:
             self.debug_template = debug_template
         self.progress_bar = progress_bar
         self.__fragments: list[
@@ -76,7 +79,9 @@ class GIF:
 
     def __enter__(self):
         if not self.save_path:
-            raise ValueError("When using the context manager, you need to specify save_path")
+            raise ValueError(
+                "When using the context manager, you need to specify save_path"
+            )
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -103,7 +108,8 @@ class GIF:
         return self.rows * 2 + self.rows + 3 + 5 + 5
 
     def generate_frame(
-        self, func: Callable[[int, int], bool] = lambda c, r: False,
+        self,
+        func: Callable[[int, int], bool] = lambda c, r: False,
     ) -> Image.Image:
         """
 
@@ -127,16 +133,23 @@ class GIF:
         draw = ImageDraw.Draw(image)
         # border
         draw.rounded_rectangle(
-            (0, 0, columns_pixels - 1, rows_pixels - 1), radius=7, fill=color_config["color_border"]
+            (0, 0, columns_pixels - 1, rows_pixels - 1),
+            radius=7,
+            fill=color_config["color_border"],
         )
         # background
-        draw.rectangle((5, 5, columns_pixels - 6, rows_pixels - 6), color_config["color_background"])
+        draw.rectangle(
+            (5, 5, columns_pixels - 6, rows_pixels - 6),
+            color_config["color_background"],
+        )
         # glare
         draw.line(
-            (6, rows_pixels - 6, columns_pixels - 7, rows_pixels - 6), color_config["color_glare"]
+            (6, rows_pixels - 6, columns_pixels - 7, rows_pixels - 6),
+            color_config["color_glare"],
         )
         draw.line(
-            (columns_pixels - 6, 6, columns_pixels - 6, rows_pixels - 7), color_config["color_glare"]
+            (columns_pixels - 6, 6, columns_pixels - 6, rows_pixels - 7),
+            color_config["color_glare"],
         )
 
         # pixels
@@ -147,7 +160,9 @@ class GIF:
                 start_pixel_row = 8 + (row * 2) + row - 1
                 string_is_on = "on" if is_on else "off"
                 color_dark_pixel = self.color_config[f"color_pixel_{string_is_on}_dark"]
-                color_light_pixel = self.color_config[f"color_pixel_{string_is_on}_light"]
+                color_light_pixel = self.color_config[
+                    f"color_pixel_{string_is_on}_light"
+                ]
                 draw.rectangle(
                     (
                         start_pixel_column,
@@ -163,9 +178,11 @@ class GIF:
                 )
         return image
 
-    def generate_text_image(self, text: str, font_path: str | BytesIO = ...) -> Image.Image:
+    def generate_text_image(
+        self, text: str, font_path: str | BytesIO | None = None
+    ) -> Image.Image:
         now_fragment_index = len(self.__fragments) + 1
-        font_path = self.default_font if font_path is ... else font_path
+        font_path = self.default_font if font_path is None else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
             int(font.getbbox(text)[2]) - 6,
@@ -182,7 +199,9 @@ class GIF:
         draw_text.text(xy=(0, 0), text=text, fill="#000000", font=font)
 
         if self.debug:
-            temp_text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
+            temp_text_img.save(
+                self.debug_template.format(fragment_index=now_fragment_index)
+            )
 
         text_cols = temp_img_cols * self.rows // temp_img_rows
         img_cols = text_cols
@@ -224,8 +243,8 @@ class GIF:
     def process_text_image(
         self,
         text_image: Image.Image,
-        intro: bool = False,
-        outro: bool = False,
+        intro: bool = True,
+        outro: bool = True,
         direction: str | Literal["left", "right", "up", "down", "none"] = "left",
     ) -> Image.Image:
         if direction not in ("left", "right", "up", "down", "none"):
@@ -253,12 +272,6 @@ class GIF:
                 if outro:
                     new_image_cols += self.columns
                     paste_col += self.columns
-                    # if text_cols < self.columns:
-                    #     new_image_cols -= self.columns - text_cols
-                    #     paste_col -= self.columns - text_cols
-                # elif text_cols > self.columns:
-                #     new_image_cols += text_cols - self.columns
-                #     paste_col += text_cols - self.columns
                 elif text_cols < self.columns:
                     new_image_cols += self.columns - text_cols
                     paste_col += self.columns - text_cols
@@ -297,14 +310,16 @@ class GIF:
 
     @staticmethod
     def extract_gif_frames(
-        gif_file: GifImagePlugin.GifImageFile | BytesIO | str,
+        gif_file: Image.Image | BytesIO | str,
         speed: int = 1,
-    ) -> Generator[tuple[GifImagePlugin.GifImageFile, int], Any, None]:
+    ) -> Generator[tuple[Image.Image, int], Any, None]:
         frame_index = 0
+
+        gif: Image.Image
 
         if isinstance(gif_file, (str, BytesIO)):
             gif = Image.open(gif_file)
-        elif isinstance(gif_file, GifImagePlugin.GifImageFile):
+        elif isinstance(gif_file, Image.Image):
             gif = gif_file
         else:
             raise ValueError("Wrong type")
@@ -339,10 +354,14 @@ class GIF:
         if direction not in ("left", "right", "up", "down", "none"):
             raise ValueError(direction)
 
-        image: Image.Image = image_path
+        image: Image.Image
 
         if isinstance(image_path, str):
             image = Image.open(image_path)
+        elif isinstance(image_path, Image.Image):
+            image = image_path
+        else:
+            raise ValueError("Wrong type")
 
         columns, rows = image.size
         if (columns, rows) < (self.columns, self.rows):
@@ -378,7 +397,8 @@ class GIF:
                     r += start_row
                     if c < 0 or r < 0:
                         return False
-                    return image.getpixel((c, r)) == (0, 0, 0)
+                    pixel = image.getpixel((c, r))
+                    return pixel[:3] == (0, 0, 0)
                 except IndexError:
                     return False
 
@@ -397,7 +417,7 @@ class GIF:
         self,
         text: str,
         *,
-        font_path: str | BytesIO = ...,
+        font_path: str | BytesIO | None = None,
         duration: int = 20,
         speed: int = 1,
         intro: bool = True,
@@ -420,20 +440,27 @@ class GIF:
 
         text_img = self.generate_text_image(text, font_path)
         image = self.process_text_image(text_img, intro, outro, direction)
-        return self.add_image_fragment(image, duration=duration, speed=speed, direction=direction)
+        return self.add_image_fragment(
+            image,
+            duration=duration,
+            speed=speed,
+            direction=direction,
+        )
 
     def add_gif_fragment(
         self,
-        gif_path: GifImagePlugin.GifImageFile | BytesIO | str,
+        gif_path: Image.Image | BytesIO | str,
         *,
-        duration: int = ...,
+        duration: int | None = None,
         speed: int = 1,
     ) -> int:
         now_fragment_index = len(self.__fragments) + 1
 
+        gif_file: Image.Image
+
         if isinstance(gif_path, (str, BytesIO)):
             gif_file = Image.open(gif_path)
-        elif isinstance(gif_path, GifImagePlugin.GifImageFile):
+        elif isinstance(gif_path, Image.Image):
             gif_file = gif_path
         else:
             raise ValueError("Wrong type")
@@ -447,14 +474,16 @@ class GIF:
             )
 
         frames = []
-        durations = []
+        durations_list = []
         for frame, duration_ in self.extract_gif_frames(gif_file, speed):
             frames.append(frame)
-            durations.append(duration_)
+            durations_list.append(duration_)
 
         frames_count = len(frames)
-        if duration is not ...:
+        if duration is not None:
             durations = (duration for _ in range(frames_count))
+        else:
+            durations = (duration for duration in durations_list)
 
         self.__fragments.append((frames, durations, frames_count))
         return now_fragment_index
@@ -465,7 +494,10 @@ class GIF:
     def remove_fragment(self, index: int) -> None:
         self.__fragments.pop(index)
 
-    def save(self, path: str | BytesIO = ...) -> None:
+    def save(
+        self,
+        path: str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None = None,
+    ) -> None:
         """
         Creates a looping GIF from a list of images.
 
@@ -473,6 +505,10 @@ class GIF:
         """
         if not self.__fragments:
             raise ValueError("You have not added any fragments.")
+
+        save_path = self.save_path if path is None else path
+        if save_path is None:
+            raise ValueError("save_path should not be None")
 
         frames: Generator[Image.Image, Any, None] = (
             frame for fragment in self.__fragments for frame in fragment[0]
@@ -485,8 +521,11 @@ class GIF:
         if not count:
             raise ValueError("You have not added any fragments.")
 
-        save_path = self.save_path if path is ... else path
-        name = save_path if isinstance(save_path, str) else getattr(save_path, "name", save_path)
+        name: str = (
+            save_path
+            if isinstance(save_path, str)
+            else getattr(save_path, "name", str(save_path))
+        )
         start = time.perf_counter()
         if self.progress_bar:
             frames = (
