@@ -24,7 +24,9 @@ def compare(gif: GIF, num: int):
 
     result = test_content == result_content
     if not result:
-        print(f"{len(test_content)=} {len(result_content)=} {hash(test_content)=} {hash(result_content)=}")
+        print(
+            f"{len(test_content)=} {len(result_content)=} {hash(test_content)=} {hash(result_content)=}"
+        )
     return result
 
 
