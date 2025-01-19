@@ -1,5 +1,8 @@
 from io import BytesIO
 from pathlib import Path
+from itertools import zip_longest
+
+from PIL import Image
 
 from gif import GIF
 
@@ -8,26 +11,27 @@ def compare(gif: GIF, num: int):
     test_file = BytesIO()
     gif.save(test_file)
     test_file.seek(0)
-    test_content = test_file.read()
+    test_gif = Image.open(test_file)
 
-    with open(
+    result_gif = Image.open(
         Path(
             "tests",
             "result_images",
             "test_GIF",
             f"{num}",
             f"test_GIF_{num}.gif",
-        ),
-        "rb",
-    ) as result_file:
-        result_content = result_file.read()
-
-    result = test_content == result_content
-    if not result:
-        print(
-            f"{len(test_content)=} {len(result_content)=} {hash(test_content)=} {hash(result_content)=}"
         )
-    return result
+    )
+
+    test_frames = GIF.extract_gif_frames(test_gif)
+    result_frames = GIF.extract_gif_frames(result_gif)
+    for (test_image, _), (result_image, _) in zip_longest(test_frames, result_frames):
+        if None in (test_image, result_image):
+            return False
+
+        if test_image != result_image:
+            return False
+    return True
 
 
 # noinspection PyPep8Naming
