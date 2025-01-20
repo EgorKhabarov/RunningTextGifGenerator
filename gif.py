@@ -187,7 +187,9 @@ class GIF:
     def generate_text_image(
         self, text: str, font_path: str | BytesIO | None = None
     ) -> Image.Image:
-        now_fragment_index = len(self._fragments) + 1
+        now_fragment_index = len(self._fragments)
+        if not text:
+            text = " "
         font_path = self.default_font_path if font_path is None else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
@@ -267,7 +269,6 @@ class GIF:
                 f'direction can only be one of "left", "right", '
                 f'"up", "down", or "none". Not "{direction}".'
             )
-        now_fragment_index = len(self._fragments) + 1
         text_cols, text_rows = text_image.size
         new_image_cols, new_image_rows = text_cols, text_rows
         paste_col, paste_row = 0, 0
@@ -322,6 +323,7 @@ class GIF:
         )
         image.paste(text_image, (paste_col, paste_row))
         if self.debug:
+            now_fragment_index = len(self._fragments)
             image.save(self.debug_path.format(fragment_index=now_fragment_index))
         return image
 
@@ -443,8 +445,9 @@ class GIF:
         )
 
         durations = (duration for _ in range(repeat) for _ in range(frames_count))
+        now_fragment_index = len(self._fragments)
         self._fragments.append((frames, durations, frames_count * repeat))
-        return len(self._fragments)
+        return now_fragment_index
 
     def add_text_fragment(
         self,
@@ -518,8 +521,6 @@ class GIF:
         else:
             raise ValueError("Wrong type")
 
-        now_fragment_index = len(self._fragments) + 1
-
         columns, rows = gif_file.size
         if (columns, rows) != (self.columns_pixels, self.rows_pixels):
             raise ValueError(
@@ -543,6 +544,7 @@ class GIF:
         else:
             durations = (duration for duration in durations_list)
 
+        now_fragment_index = len(self._fragments)
         self._fragments.append((frames, durations, frames_count))
         return now_fragment_index
 
