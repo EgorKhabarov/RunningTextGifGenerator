@@ -11,14 +11,21 @@ def test_exceptions():
     with ExceptionWrapper(ValueError("Minimum height = 1")):
         GIF(rows=0)
 
+    with ExceptionWrapper(ValueError("loop must be greater than or equal to 0")):
+        GIF(loop=-1)
+
     with ExceptionWrapper(
         ValueError("When using the context manager, you need to specify save_path")
     ):
         with GIF():
             pass
 
-    with ExceptionWrapper(ValueError("You have not added any fragments.")):
+    with ExceptionWrapper(ValueError("You have not added any fragments")):
         with GIF(save_path="path"):
+            pass
+
+    with ExceptionWrapper(ValueError("loop must be greater than or equal to 0")):
+        with GIF(loop=-1):
             pass
 
     with ExceptionWrapper(ValueError("The debug_path must point to a file")):

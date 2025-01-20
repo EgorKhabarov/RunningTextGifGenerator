@@ -1,4 +1,5 @@
 import time
+import itertools
 from io import BytesIO
 from os import PathLike
 from pathlib import Path
@@ -25,9 +26,10 @@ def __print_progress_bar__(x: int, y: int, name: str, start: float):
         y = 100
 
     arrow = ("█" * int(x / y * bar_length))[:bar_length]
+    of_len = len(str(y))
 
     print(
-        f"\r[{arrow:<{bar_length}}][{x}/{y} frames]"
+        f"\r[{arrow:<{bar_length}}][{x:>{of_len}}/{y:>{of_len}} frames]"
         f"[{int(x / y * 100):>3}%][{time.perf_counter() - start:>5.2f}s][{name}]",
         end="\n" if x == y else "",
         flush=True,
@@ -51,6 +53,7 @@ class GIF:
         save_path: (
             str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
         ) = None,
+        loop: int = 0,
         debug: bool = False,
         debug_path: str | Path | None = None,
         progress_bar: bool = True,
@@ -59,12 +62,15 @@ class GIF:
             raise ValueError("Minimum width = 1")
         if rows < 1:
             raise ValueError("Minimum height = 1")
+        if loop < 0:
+            raise ValueError("loop must be greater than or equal to 0")
 
         self.columns = columns
         self.rows = rows
         if default_font_path is not None:
             self.default_font_path = str(default_font_path)
         self.save_path = save_path
+        self.loop = loop
         self.debug = debug
         if debug_path is not None:
             self.debug_path = debug_path
@@ -353,6 +359,7 @@ class GIF:
         duration: int = 20,
         speed: int = 1,
         direction: str | Literal["left", "right", "up", "down", "none"] = "left",
+        repeat: int = 1,
     ):
         """
 
@@ -360,6 +367,7 @@ class GIF:
         :param duration:
         :param speed:
         :param direction:
+        :param repeat:
         :return:
         """
         direction = direction.lower()
@@ -368,6 +376,9 @@ class GIF:
                 f'direction can only be one of "left", "right", '
                 f'"up", "down", or "none". Not "{direction}".'
             )
+
+        if repeat < 1:
+            raise ValueError("repeat must be greater than or equal to 1")
 
         image: Image.Image
 
@@ -421,13 +432,18 @@ class GIF:
 
             return func
 
+        frames_count = len(range(0, count, speed))
         frames = (
-            self.generate_frame(func=check_pixel(n)) for n in range(0, count, speed)
+            frame
+            for generator in itertools.tee(
+                (self.generate_frame(func=check_pixel(n)) for n in range(frames_count)),
+                repeat,
+            )
+            for frame in generator
         )
 
-        frames_count = len(range(0, count, speed))
-        durations = (duration for _ in range(frames_count))
-        self.__fragments.append((frames, durations, frames_count))
+        durations = (duration for _ in range(repeat) for _ in range(frames_count))
+        self.__fragments.append((frames, durations, frames_count * repeat))
         return len(self.__fragments)
 
     def add_text_fragment(
@@ -440,6 +456,7 @@ class GIF:
         intro: bool = True,
         outro: bool = True,
         direction: str | Literal["left", "right", "up", "down", "none"] = "left",
+        repeat: int = 1,
     ) -> int:
         """
 
@@ -450,6 +467,7 @@ class GIF:
         :param intro:
         :param outro:
         :param direction:
+        :param repeat:
         :return: Fragment index
         """
         direction = direction.lower()
@@ -459,6 +477,9 @@ class GIF:
                 f'"up", "down", or "none". Not "{direction}".'
             )
 
+        if repeat < 1:
+            raise ValueError("repeat must be greater than or equal to 1")
+
         text_img = self.generate_text_image(text, font_path)
         image = self.process_text_image(text_img, intro, outro, direction)
         return self.add_image_fragment(
@@ -466,6 +487,7 @@ class GIF:
             duration=duration,
             speed=speed,
             direction=direction,
+            repeat=repeat,
         )
 
     def add_gif_fragment(
@@ -474,15 +496,18 @@ class GIF:
         *,
         duration: int | None = None,
         speed: int = 1,
+        repeat: int = 1,
     ) -> int:
         """
 
         :param gif_path:
         :param duration:
         :param speed:
+        :param repeat:
         :return:
         """
-        now_fragment_index = len(self.__fragments) + 1
+        if repeat < 1:
+            raise ValueError("repeat must be greater than or equal to 1")
 
         gif_file: Image.Image
 
@@ -492,6 +517,8 @@ class GIF:
             gif_file = gif_path
         else:
             raise ValueError("Wrong type")
+
+        now_fragment_index = len(self.__fragments) + 1
 
         columns, rows = gif_file.size
         if (columns, rows) != (self.columns_pixels, self.rows_pixels):
@@ -506,6 +533,9 @@ class GIF:
         for frame, duration_ in self.extract_gif_frames(gif_file, speed):
             frames.append(frame)
             durations_list.append(duration_)
+
+        frames *= repeat
+        durations_list *= repeat
 
         frames_count = len(frames)
         if duration is not None:
@@ -525,18 +555,24 @@ class GIF:
     def save(
         self,
         path: str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None = None,
+        loop: int | None = None,
     ) -> None:
         """
         Creates a looping GIF from a list of images.
 
         :param path: Path or file for GIF
+        :param loop:
         """
         if not self.__fragments:
-            raise ValueError("You have not added any fragments.")
+            raise ValueError("You have not added any fragments")
 
         save_path = self.save_path if path is None else path
         if save_path is None:
             raise ValueError("save_path should not be None")
+
+        loop = (self.loop if loop is None else loop) or 0
+        if loop < 0:
+            raise ValueError("loop must be greater than or equal to 0")
 
         frames: Generator[Image.Image, Any, None] = (
             frame for fragment in self.__fragments for frame in fragment[0]
@@ -547,7 +583,7 @@ class GIF:
         count = sum(fragment[2] for fragment in self.__fragments)
 
         if not count:
-            raise ValueError("You have not added any fragments.")
+            raise ValueError("You have not added any fragments")
 
         name: str = (
             save_path
@@ -557,8 +593,8 @@ class GIF:
         start = time.perf_counter()
         if self.progress_bar:
             frames = (
-                print_progress_bar(n, count, name, start) or i
-                for n, i in enumerate(frames, 0)
+                print_progress_bar(n, count, name, start) or frame
+                for n, frame in enumerate(frames, start=0)
             )
 
         next(frames).save(
@@ -567,7 +603,7 @@ class GIF:
             save_all=True,
             append_images=frames,
             duration=durations,
-            loop=0,
+            loop=loop,
         )
         if self.progress_bar:
             print_progress_bar(count, count, name, start)

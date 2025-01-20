@@ -1,6 +1,6 @@
 from io import BytesIO
-from itertools import zip_longest
 from pathlib import Path
+from itertools import zip_longest
 
 from PIL import Image
 
