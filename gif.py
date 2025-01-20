@@ -40,34 +40,34 @@ print_progress_bar = __print_progress_bar__
 class GIF:
     color_config: dict[str, str] = color_config
     default_font_path: str = "./fonts/Monocraft.otf"
-    __debug_template: str = "debug_image_frame_{fragment_index}.png"
+    __debug_path: str = "debug_image_frame_{fragment_index}.png"
 
     def __init__(
         self,
         columns: int = 79,
         rows: int = 9,
         *,
-        default_font_path: str | None = None,
+        default_font_path: str | Path | None = None,
         save_path: (
             str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
         ) = None,
         debug: bool = False,
-        debug_template: str | None = None,
+        debug_path: str | Path | None = None,
         progress_bar: bool = True,
     ):
-        if columns < 6:
-            raise ValueError("Minimum width = 6")
+        if columns < 1:
+            raise ValueError("Minimum width = 1")
         if rows < 1:
             raise ValueError("Minimum height = 1")
 
         self.columns = columns
         self.rows = rows
         if default_font_path is not None:
-            self.default_font_path = default_font_path
+            self.default_font_path = str(default_font_path)
         self.save_path = save_path
         self.debug = debug
-        if debug_template is not None:
-            self.debug_template = debug_template
+        if debug_path is not None:
+            self.debug_path = debug_path
         self.progress_bar = progress_bar
         self.__fragments: list[
             tuple[
@@ -88,16 +88,16 @@ class GIF:
         self.save()
 
     @property
-    def debug_template(self):
-        return self.__debug_template
+    def debug_path(self):
+        return self.__debug_path
 
-    @debug_template.setter
-    def debug_template(self, debug_template: str):
-        debug_path = Path(debug_template)
-        if debug_path.is_dir():
-            raise ValueError("The debug_template must point to a file")
-        debug_path.parent.mkdir(parents=True, exist_ok=True)
-        self.__debug_template = debug_template
+    @debug_path.setter
+    def debug_path(self, debug_path: str | Path):
+        debug_path_path = Path(debug_path)
+        if debug_path_path.is_dir():
+            raise ValueError("The debug_path must point to a file")
+        debug_path_path.parent.mkdir(parents=True, exist_ok=True)
+        self.__debug_path = str(debug_path)
 
     @property
     def columns_pixels(self):
@@ -200,7 +200,7 @@ class GIF:
 
         if self.debug:
             temp_text_img.save(
-                self.debug_template.format(fragment_index=now_fragment_index)
+                self.debug_path.format(fragment_index=now_fragment_index)
             )
 
         text_cols = temp_img_cols * self.rows // temp_img_rows
@@ -216,7 +216,7 @@ class GIF:
         draw_text_resized = ImageDraw.Draw(im=text_img)
 
         if self.debug:
-            text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
+            text_img.save(self.debug_path.format(fragment_index=now_fragment_index))
 
         for resized_column_pixel in range(text_cols):
             for resized_row_pixel in range(img_rows):
@@ -236,7 +236,7 @@ class GIF:
                 )
 
         if self.debug:
-            text_img.save(self.debug_template.format(fragment_index=now_fragment_index))
+            text_img.save(self.debug_path.format(fragment_index=now_fragment_index))
 
         return text_img
 
@@ -247,8 +247,20 @@ class GIF:
         outro: bool = True,
         direction: str | Literal["left", "right", "up", "down", "none"] = "left",
     ) -> Image.Image:
+        """
+
+        :param text_image:
+        :param intro:
+        :param outro:
+        :param direction:
+        :return:
+        """
+        direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
-            raise ValueError(direction)
+            raise ValueError(
+                f'direction can only be one of "left", "right", '
+                f'"up", "down", or "none". Not "{direction}".'
+            )
         now_fragment_index = len(self.__fragments) + 1
         text_cols, text_rows = text_image.size
         new_image_cols, new_image_rows = text_cols, text_rows
@@ -304,7 +316,7 @@ class GIF:
         )
         image.paste(text_image, (paste_col, paste_row))
         if self.debug:
-            image.save(self.debug_template.format(fragment_index=now_fragment_index))
+            image.save(self.debug_path.format(fragment_index=now_fragment_index))
         return image
 
     @staticmethod
@@ -350,8 +362,12 @@ class GIF:
         :param direction:
         :return:
         """
+        direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
-            raise ValueError(direction)
+            raise ValueError(
+                f'direction can only be one of "left", "right", '
+                f'"up", "down", or "none". Not "{direction}".'
+            )
 
         image: Image.Image
 
@@ -436,8 +452,12 @@ class GIF:
         :param direction:
         :return: Fragment index
         """
+        direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
-            raise ValueError(direction)
+            raise ValueError(
+                f'direction can only be one of "left", "right", '
+                f'"up", "down", or "none". Not "{direction}".'
+            )
 
         text_img = self.generate_text_image(text, font_path)
         image = self.process_text_image(text_img, intro, outro, direction)
@@ -455,6 +475,13 @@ class GIF:
         duration: int | None = None,
         speed: int = 1,
     ) -> int:
+        """
+
+        :param gif_path:
+        :param duration:
+        :param speed:
+        :return:
+        """
         now_fragment_index = len(self.__fragments) + 1
 
         gif_file: Image.Image
