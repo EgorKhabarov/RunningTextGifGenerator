@@ -10,10 +10,10 @@ from tests.utils import compare_gif
 # noinspection PyPep8Naming
 @pytest.mark.parametrize(
     "num, loop, repeat",
-    [
+    (
         (1, 0, 1),
         (2, 2, 2),
-    ],
+    ),
 )
 def test_GIF(num: int, loop: int, repeat: int):
     gif = GIF(debug=False, progress_bar=False, loop=loop)
@@ -55,3 +55,24 @@ def test_GIF(num: int, loop: int, repeat: int):
 
     # gif.save(f"tests/result_images/test_GIF/{num}/test_GIF_{num}.gif")
     assert compare_gif(gif, f"tests/result_images/test_GIF/{num}/test_GIF_{num}.gif")
+
+
+def test_extract_gif():
+    assert (
+        len(
+            list(
+                GIF.extract_gif_frames(f"tests/result_images/test_GIF/1/test_GIF_1.gif")
+            )
+        )
+        == 645
+    )
+    assert (
+        len(
+            list(
+                GIF.extract_gif_frames(
+                    f"tests/result_images/test_GIF/1/test_GIF_1.gif", speed=2
+                )
+            )
+        )
+        == 323
+    )

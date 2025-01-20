@@ -10,14 +10,14 @@ from gif import GIF
 
 @pytest.mark.parametrize(
     "loop, repeat",
-    [
+    (
         (0, 1),
         (0, 2),
         (1, 1),
         (1, 2),
         (2, 1),
         (2, 2),
-    ],
+    ),
 )
 def test_progress_bar(loop: int, repeat: int):
     def replace_time(text: str):
