@@ -206,10 +206,10 @@ class GIF:
                 self.debug_path.format(fragment_index=now_fragment_index)
             )
 
-        text_cols = temp_img_cols * self.rows // temp_img_rows
+        text_cols = temp_img_cols * 9 * len(text.splitlines()) // temp_img_rows
         img_cols = text_cols
 
-        img_rows = self.rows
+        img_rows = 9 * len(text.splitlines())
 
         text_img = Image.new(
             mode="RGB",
@@ -415,17 +415,18 @@ class GIF:
                     start_col, start_row = 0, 0
 
             def func(c: int, r: int) -> bool:
-                try:
-                    c += start_col
-                    r += start_row
-                    if c < 0 or r < 0:
-                        return False
-                    pixel = image.getpixel((c, r))
-                    if not pixel or isinstance(pixel, float):
-                        return False
-                    return pixel[:3] == (0, 0, 0)
-                except IndexError:
+                c += start_col
+                r += start_row
+                pixel = image.getpixel((c, r))
+                if (
+                    c < 0
+                    or r < 0
+                    or not pixel
+                    or isinstance(pixel, float)
+                    or pixel[:3] != (0, 0, 0)
+                ):
                     return False
+                return True
 
             return func
 
