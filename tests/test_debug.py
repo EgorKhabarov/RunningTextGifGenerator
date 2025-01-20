@@ -22,5 +22,5 @@ def test_debug():
         "debug_images",
         "test_debug",
         "1",
-        "test_debug_1_1.png",
+        "test_debug_1_0.png",
     ).exists()
