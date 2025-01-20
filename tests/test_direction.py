@@ -14,7 +14,7 @@ from tests.utils import compare_gif
         (4, False, False, (50, 1000, 1000, 66, 1000, 50, 1000, 50, 1000, 1000)),
     ),
 )
-def test_direction(num: int, intro: bool, outro: bool, durations: tuple[int]):
+def test_direction(num: int, intro: bool, outro: bool, durations: tuple):
     gif = GIF(debug=False, progress_bar=False)
 
     gif.debug_path = (

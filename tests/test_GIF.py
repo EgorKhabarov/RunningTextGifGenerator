@@ -61,7 +61,7 @@ def test_extract_gif():
     assert (
         len(
             list(
-                GIF.extract_gif_frames(f"tests/result_images/test_GIF/1/test_GIF_1.gif")
+                GIF.extract_gif_frames("tests/result_images/test_GIF/1/test_GIF_1.gif")
             )
         )
         == 645
@@ -70,7 +70,7 @@ def test_extract_gif():
         len(
             list(
                 GIF.extract_gif_frames(
-                    f"tests/result_images/test_GIF/1/test_GIF_1.gif", speed=2
+                    "tests/result_images/test_GIF/1/test_GIF_1.gif", speed=2
                 )
             )
         )

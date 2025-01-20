@@ -75,7 +75,7 @@ class GIF:
         if debug_path is not None:
             self.debug_path = debug_path
         self.progress_bar = progress_bar
-        self.__fragments: list[
+        self._fragments: list[
             tuple[
                 Generator[Image.Image, Any, None] | list[Image.Image],
                 Generator[int, Any, None] | list[int],
@@ -187,7 +187,7 @@ class GIF:
     def generate_text_image(
         self, text: str, font_path: str | BytesIO | None = None
     ) -> Image.Image:
-        now_fragment_index = len(self.__fragments) + 1
+        now_fragment_index = len(self._fragments) + 1
         font_path = self.default_font_path if font_path is None else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
@@ -267,7 +267,7 @@ class GIF:
                 f'direction can only be one of "left", "right", '
                 f'"up", "down", or "none". Not "{direction}".'
             )
-        now_fragment_index = len(self.__fragments) + 1
+        now_fragment_index = len(self._fragments) + 1
         text_cols, text_rows = text_image.size
         new_image_cols, new_image_rows = text_cols, text_rows
         paste_col, paste_row = 0, 0
@@ -443,8 +443,8 @@ class GIF:
         )
 
         durations = (duration for _ in range(repeat) for _ in range(frames_count))
-        self.__fragments.append((frames, durations, frames_count * repeat))
-        return len(self.__fragments)
+        self._fragments.append((frames, durations, frames_count * repeat))
+        return len(self._fragments)
 
     def add_text_fragment(
         self,
@@ -518,7 +518,7 @@ class GIF:
         else:
             raise ValueError("Wrong type")
 
-        now_fragment_index = len(self.__fragments) + 1
+        now_fragment_index = len(self._fragments) + 1
 
         columns, rows = gif_file.size
         if (columns, rows) != (self.columns_pixels, self.rows_pixels):
@@ -543,14 +543,14 @@ class GIF:
         else:
             durations = (duration for duration in durations_list)
 
-        self.__fragments.append((frames, durations, frames_count))
+        self._fragments.append((frames, durations, frames_count))
         return now_fragment_index
 
     def clear_fragments(self) -> None:
-        self.__fragments.clear()
+        self._fragments.clear()
 
     def remove_fragment(self, index: int) -> None:
-        self.__fragments.pop(index)
+        self._fragments.pop(index)
 
     def save(
         self,
@@ -563,7 +563,7 @@ class GIF:
         :param path: Path or file for GIF
         :param loop:
         """
-        if not self.__fragments:
+        if not self._fragments:
             raise ValueError("You have not added any fragments")
 
         save_path = self.save_path if path is None else path
@@ -575,12 +575,12 @@ class GIF:
             raise ValueError("loop must be greater than or equal to 0")
 
         frames: Generator[Image.Image, Any, None] = (
-            frame for fragment in self.__fragments for frame in fragment[0]
+            frame for fragment in self._fragments for frame in fragment[0]
         )
         durations: list[int] = list(
-            duration for fragment in self.__fragments for duration in fragment[1]
+            duration for fragment in self._fragments for duration in fragment[1]
         )
-        count = sum(fragment[2] for fragment in self.__fragments)
+        count = sum(fragment[2] for fragment in self._fragments)
 
         if not count:
             raise ValueError("You have not added any fragments")
@@ -611,7 +611,7 @@ class GIF:
 
     @staticmethod
     def open(
-        path: str | bytes | PathLike[str] | PathLike[bytes] | BytesIO,
+        path: Image.Image | BytesIO | str,
         speed: int = 1,
         *,
         default_font_path: str | Path | None = None,
@@ -639,11 +639,11 @@ class GIF:
             debug_path=debug_path,
             progress_bar=progress_bar,
         )
-        gif._GIF__fragments.append(  # noqa
-            [
-                iter(frames),
-                iter(durations),
+        gif._fragments.append(
+            (
+                (frame for frame in frames),
+                durations,
                 len(frames),
-            ]
+            )
         )
         return gif

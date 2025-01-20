@@ -48,12 +48,12 @@ def compare_gif(gif: GIF, path: str | Path):
 
 def test_utils():
     with ExceptionWrapper(
-        Exception(f"Expected exception ValueError('error') was not raised")
+        Exception("Expected exception ValueError('error') was not raised")
     ):
         with ExceptionWrapper(ValueError("error")):
             pass
 
-    with ExceptionWrapper(Exception(f"ValueError('error') != ValueError('exception')")):
+    with ExceptionWrapper(Exception("ValueError('error') != ValueError('exception')")):
         with ExceptionWrapper(ValueError("error")):
             raise ValueError("exception")
 
