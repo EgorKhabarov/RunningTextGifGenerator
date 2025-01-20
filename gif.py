@@ -608,3 +608,42 @@ class GIF:
         if self.progress_bar:
             print_progress_bar(count, count, name, start)
         self.clear_fragments()
+
+    @staticmethod
+    def open(
+        path: str | bytes | PathLike[str] | PathLike[bytes] | BytesIO,
+        speed: int = 1,
+        *,
+        default_font_path: str | Path | None = None,
+        save_path: (
+            str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
+        ) = None,
+        loop: int = 0,
+        debug: bool = False,
+        debug_path: str | Path | None = None,
+        progress_bar: bool = True,
+    ) -> "GIF":
+        generator = GIF.extract_gif_frames(path, speed)
+        frames = []
+        durations = []
+        for frame, duration in generator:
+            frames.append(frame)
+            durations.append(duration)
+
+        gif = GIF(
+            *frames[0].size,
+            default_font_path=default_font_path,
+            save_path=save_path,
+            loop=loop,
+            debug=debug,
+            debug_path=debug_path,
+            progress_bar=progress_bar,
+        )
+        gif._GIF__fragments.append(  # noqa
+            [
+                iter(frames),
+                iter(durations),
+                len(frames),
+            ]
+        )
+        return gif
