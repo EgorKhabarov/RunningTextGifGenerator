@@ -81,7 +81,7 @@ gif.save(path="dino.gif")
 </td></tr>
 <tr>
 <td><img alt="dino.png" src="readme_content/dino.png" width="50" style="image-rendering: pixelated;"></td>
-<td><img alt="dino.gif" src="readme_content/dino.gif"></td>
+<td><img alt="dino.gif" src="readme_content/dino.gif" width="80" style="image-rendering: pixelated;"></td>
 </tr></tbody></table>
 
 

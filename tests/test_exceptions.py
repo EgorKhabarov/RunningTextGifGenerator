@@ -26,22 +26,22 @@ def test_exceptions():
 
     with ExceptionWrapper(
         ValueError(
-            f'direction can only be one of "left", "right", "up", "down", or "none". Not "lorem ipsum".'
+            'direction can only be one of "left", "right", "up", "down", or "none". Not "lorem ipsum".'
         )
     ):
         GIF().add_text_fragment("text", direction="Lorem ipsum")
 
     with ExceptionWrapper(
         ValueError(
-            f'direction can only be one of "left", "right", "up", "down", or "none". Not "lorem ipsum".'
+            'direction can only be one of "left", "right", "up", "down", or "none". Not "lorem ipsum".'
         )
     ):
         GIF().add_image_fragment(Image.new("RGB", (1, 1)), direction="Lorem ipsum")
 
-    with ExceptionWrapper(ValueError(f"Wrong type")):
+    with ExceptionWrapper(ValueError("Wrong type")):
         GIF().add_image_fragment(None)  # type: ignore
 
-    with ExceptionWrapper(ValueError(f"Wrong type")):
+    with ExceptionWrapper(ValueError("Wrong type")):
         GIF().add_gif_fragment(None)  # type: ignore
 
     test_image = Image.new("RGB", (78, 8))
