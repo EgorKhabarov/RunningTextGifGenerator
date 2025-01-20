@@ -44,7 +44,7 @@ def test_GIF(num: int, loop: int, repeat: int):
     ) as temp_gif:
         temp_gif.add_text_fragment("gif 1")
 
-    gif.add_gif_fragment(f"tests/tests_data/test_GIF/{num}/gif1.gif", repeat=repeat)
+    gif.add_gif_fragment(f"tests/tests_data/test_GIF/{num}/gif1.gif", duration=20, repeat=repeat)
 
     with BytesIO() as temp_file:
         with GIF(save_path=temp_file, progress_bar=False) as temp_gif:

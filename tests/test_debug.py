@@ -5,7 +5,8 @@ from gif import GIF
 
 def test_debug():
     gif = GIF(
-        rows=10,
+        columns=79,
+        rows=20,
         debug=True,
         debug_path=Path(
             "tests",

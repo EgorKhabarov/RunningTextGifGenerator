@@ -21,13 +21,8 @@ color_config = {
 
 def __print_progress_bar__(x: int, y: int, name: str, start: float):
     bar_length = 50
-
-    if y == 0:
-        y = 100
-
     arrow = ("█" * int(x / y * bar_length))[:bar_length]
     of_len = len(str(y))
-
     print(
         f"\r[{arrow:<{bar_length}}][{x:>{of_len}}/{y:>{of_len}} frames]"
         f"[{int(x / y * 100):>3}%][{time.perf_counter() - start:>5.2f}s][{name}]",
@@ -193,8 +188,8 @@ class GIF:
         font_path = self.default_font_path if font_path is None else font_path
         font = ImageFont.truetype(font_path, 54)
         temp_img_cols, temp_img_rows = (
-            int(font.getbbox(text)[2]) - 6,
-            54 * (self.rows // 9) - 1,
+            int(font.getbbox(max(text.splitlines(), key=len))[2]) - 6,
+            54 * len(text.splitlines()) - 1,
         )
 
         # Temporary image with text

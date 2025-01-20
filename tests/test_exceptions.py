@@ -27,8 +27,19 @@ def test_exceptions():
         with GIF(save_path="path") as gif:
             index = gif.add_text_fragment(" ")
             gif.remove_fragment(index)
-            gif.add_text_fragment(" ")
+            gif.add_text_fragment("")
             gif.clear_fragments()
+
+    with ExceptionWrapper(ValueError("You have not added any fragments")):
+        gif = GIF(save_path="path")
+        gif._fragments.append(
+            (  # noqa
+                (i for i in range(1)),
+                (i for i in range(1)),
+                0,
+            )
+        )
+        gif.save("path")
 
     with ExceptionWrapper(ValueError("save_path should not be None")):
         gif = GIF()

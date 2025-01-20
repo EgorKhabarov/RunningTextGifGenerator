@@ -26,7 +26,7 @@ def test_progress_bar(loop: int, repeat: int):
     stdout_file = StringIO()
     file = BytesIO()
 
-    gif = GIF(6, loop=loop)
+    gif = GIF(6, loop=loop, default_font_path="./fonts/Monocraft.otf")
     gif.add_text_fragment("12", intro=False, outro=False, repeat=repeat)
 
     with redirect_stdout(stdout_file):
