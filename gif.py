@@ -434,7 +434,7 @@ class GIF:
         frames = (
             frame
             for generator in itertools.tee(
-                (self.generate_frame(func=check_pixel(n)) for n in range(frames_count)),
+                (self.generate_frame(func=check_pixel(n)) for n in range(0, count, speed)),
                 repeat,
             )
             for frame in generator
