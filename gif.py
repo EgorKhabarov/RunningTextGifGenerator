@@ -53,6 +53,17 @@ class GIF:
         debug_path: str | Path | None = None,
         progress_bar: bool = True,
     ):
+        """
+
+        :param columns: Gif columns.
+        :param rows: Gif rows.
+        :param default_font_path: Path to the default font.
+        :param save_path: Path to save. Used when working with the context manager.
+        :param loop: Looping gif. 0 for infinite loop.
+        :param debug: Should debug images be printed?
+        :param debug_path: Path to save debug images.
+        :param progress_bar: Do I need to print the progress bar?
+        """
         if columns < 1:
             raise ValueError("Minimum width = 1")
         if rows < 1:
@@ -182,6 +193,12 @@ class GIF:
     def generate_text_image(
         self, text: str, font_path: str | BytesIO | None = None
     ) -> Image.Image:
+        """
+
+        :param text: Text.
+        :param font_path: Path to the font.
+        :return: Text image.
+        """
         now_fragment_index = len(self._fragments)
         if not text:
             text = " "
@@ -252,11 +269,11 @@ class GIF:
     ) -> Image.Image:
         """
 
-        :param text_image:
-        :param intro:
-        :param outro:
-        :param direction:
-        :return:
+        :param text_image: Image with text. Generated in `generate_text_image`.
+        :param intro: Do you want the image to extend beyond the screen?
+        :param outro: Do you want the image to extend beyond the screen?
+        :param direction: Direction.
+        :return: Processed text image.
         """
         direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
@@ -331,10 +348,10 @@ class GIF:
     ) -> Generator[tuple[Image.Image, int], Any, None]:
         """
 
-        :param gif_file:
-        :param duration:
-        :param speed:
-        :return:
+        :param gif_file: GIF
+        :param duration: The speed of each frame within this fragment in milliseconds.
+        :param speed: Allows you to adjust the speed by selecting every x frame. For example, `speed=2` takes every second frame
+        :return: Generator (frame, duration).
         """
         frame_index = 0
 
@@ -371,12 +388,12 @@ class GIF:
     ):
         """
 
-        :param image_path:
-        :param duration:
-        :param speed:
-        :param direction:
-        :param repeat:
-        :return:
+        :param image_path: Image file or path to it. `Image.open(image_path)`
+        :param duration: The speed of each frame within this fragment in milliseconds. For example, `speed=2` takes every second frame.
+        :param speed: Allows you to adjust the speed by selecting every x frame. For example, `speed=2` takes every second frame.
+        :param direction: The direction of the image movement.
+        :param repeat: Number of times this fragment is repeated.
+        :return: Fragment index.
         """
         direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
@@ -473,15 +490,15 @@ class GIF:
     ) -> int:
         """
 
-        :param text:
-        :param duration:
-        :param speed:
-        :param font_path:
-        :param intro:
-        :param outro:
-        :param direction:
-        :param repeat:
-        :return: Fragment index
+        :param text: The text for the fragment
+        :param duration: The speed of each frame within this fragment in milliseconds
+        :param speed: Allows you to adjust the speed by selecting every x frame. For example, `speed=2` takes every second frame.
+        :param font_path: The path to the font. A pixel font with 9 pixel height letters.
+        :param intro: Whether to fade the text onto the screen.
+        :param outro: Whether to fade the text off the screen.
+        :param direction: The direction of the text movement.
+        :param repeat: Number of times this fragment is repeated.
+        :return: Fragment index.
         """
         direction = direction.lower()
         if direction not in ("left", "right", "up", "down", "none"):
@@ -513,11 +530,11 @@ class GIF:
     ) -> int:
         """
 
-        :param gif_path:
-        :param duration:
-        :param speed:
-        :param repeat:
-        :return:
+        :param gif_path: Gif file or path to it. `Image.open(gif_path)`
+        :param duration: The speed of each frame within this fragment in milliseconds.
+        :param speed: Allows you to adjust the speed by selecting every x frame. For example, `speed=2` takes every second frame.
+        :param repeat: Number of times this fragment is repeated.
+        :return: Fragment index.
         """
         if repeat < 1:
             raise ValueError("repeat must be greater than or equal to 1")
@@ -570,7 +587,7 @@ class GIF:
         Creates a looping GIF from a list of images.
 
         :param path: Path or file for GIF
-        :param loop:
+        :param loop: Looping gif. 0 for infinite loop.
         """
         if not self._fragments:
             raise ValueError("You have not added any fragments")
@@ -642,16 +659,16 @@ class GIF:
     ) -> "GIF":
         """
 
-        :param path:
-        :param duration:
-        :param speed:
-        :param default_font_path:
-        :param save_path:
-        :param loop:
-        :param debug:
-        :param debug_path:
-        :param progress_bar:
-        :return:
+        :param path: Gif file or path to it. `Image.open(path)`
+        :param duration: The speed of each frame within this fragment in milliseconds.
+        :param speed: Allows you to adjust the speed by selecting every x frame. For example, `speed=2` takes every second frame.
+        :param default_font_path: Path to the default font.
+        :param save_path: Path to save. Used when working with the context manager.
+        :param loop: Looping gif. 0 for infinite loop.
+        :param debug: Should debug images be printed?
+        :param debug_path: Path to save debug images.
+        :param progress_bar: Do I need to print the progress bar?
+        :return: Open GIF.
         """
         generator = GIF.extract_gif_frames(path, duration=duration, speed=speed)
         frames = []
@@ -669,11 +686,5 @@ class GIF:
             debug_path=debug_path,
             progress_bar=progress_bar,
         )
-        gif._fragments.append(
-            (
-                (frame for frame in frames),
-                durations,
-                len(frames),
-            )
-        )
+        gif._fragments.append((frames, durations, len(frames)))
         return gif

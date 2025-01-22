@@ -49,11 +49,13 @@ This method returns the index of the added fragment.
 You can add a image fragment to a gif animation using the `add_image_fragment` method.
 This method returns the index of the added fragment.
 
-| Parameter                      | Description                                                                                                   |
-|--------------------------------|---------------------------------------------------------------------------------------------------------------|
-| image_path: Image.Image \| str | Image file or path to it<br/>`Image.open(image_path)`                                                         |
-| duration: int = 20             | The speed of each frame within this fragment in milliseconds                                                  |
-| speed: int = 1                 | Allows you to adjust the speed by selecting every x frame.<br>For example, `speed=2` takes every second frame |
+| Parameter                                                                  | Description                                                                                                   |
+|----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| image_path: Image.Image \| str                                             | Image file or path to it<br/>`Image.open(image_path)`                                                         |
+| duration: int = 20                                                         | The speed of each frame within this fragment in milliseconds                                                  |
+| speed: int = 1                                                             | Allows you to adjust the speed by selecting every x frame.<br>For example, `speed=2` takes every second frame |
+| direction: str \| Literal\["left", "right", "up", "down", "none"] = "left" | The direction of the image movement                                                                           |
+| repeat: int = 1                                                            |                                                                                                               |
 
 #### Example:
 
