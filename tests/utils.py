@@ -27,6 +27,7 @@ class ExceptionWrapper:
 
 def compare_gif(gif: GIF, path: str | Path):
     test_file = BytesIO()
+    gif.progress_bar = False
     gif.save(test_file)
     test_file.seek(0)
     test_gif = Image.open(test_file)
@@ -39,7 +40,11 @@ def compare_gif(gif: GIF, path: str | Path):
         if None in (test_image, result_image):
             return False
 
-        (test_image, _), (result_image, _) = test_image, result_image
+        test_image, test_duration = test_image
+        result_image, result_duration = result_image
+
+        if test_duration != result_duration:
+            return False
 
         if test_image != result_image:
             return False

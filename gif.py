@@ -73,7 +73,7 @@ class GIF:
         self._fragments: list[
             tuple[
                 Generator[Image.Image, Any, None] | list[Image.Image],
-                Generator[int, Any, None] | list[int],
+                Generator[int, Any, None] | list[int] | int,
                 int,
             ]
         ] = []
@@ -325,8 +325,17 @@ class GIF:
     @staticmethod
     def extract_gif_frames(
         gif_file: Image.Image | BytesIO | str,
+        *,
+        duration: int | None = None,
         speed: int = 1,
     ) -> Generator[tuple[Image.Image, int], Any, None]:
+        """
+
+        :param gif_file:
+        :param duration:
+        :param speed:
+        :return:
+        """
         frame_index = 0
 
         gif: Image.Image
@@ -344,7 +353,9 @@ class GIF:
                 continue
             try:
                 gif.seek(frame_index)
-                yield gif.copy(), gif.info.get("duration", 0)
+                yield gif.copy(), (
+                    duration if duration is not None else gif.info.get("duration", 0)
+                )
             except EOFError:
                 break
             frame_index += 1
@@ -529,19 +540,16 @@ class GIF:
             )
 
         frames = []
-        durations_list = []
-        for frame, duration_ in self.extract_gif_frames(gif_file, speed):
+        durations = []
+        for frame, duration_ in self.extract_gif_frames(
+            gif_file, duration=duration, speed=speed
+        ):
             frames.append(frame)
-            durations_list.append(duration_)
+            durations.append(duration_)
 
         frames *= repeat
-        durations_list *= repeat
-
+        durations *= repeat
         frames_count = len(frames)
-        if duration is not None:
-            durations = (duration for _ in range(frames_count))
-        else:
-            durations = (duration for duration in durations_list)
 
         now_fragment_index = len(self._fragments)
         self._fragments.append((frames, durations, frames_count))
@@ -578,9 +586,16 @@ class GIF:
         frames: Generator[Image.Image, Any, None] = (
             frame for fragment in self._fragments for frame in fragment[0]
         )
-        durations: list[int] = list(
-            duration for fragment in self._fragments for duration in fragment[1]
-        )
+
+        durations: list[int] = [
+            duration
+            for fragment in self._fragments
+            for duration in (
+                (fragment[1] for _ in range(fragment[2]))
+                if isinstance(fragment[1], int)
+                else fragment[1]
+            )
+        ]
         count = sum(fragment[2] for fragment in self._fragments)
 
         if not count:
@@ -613,8 +628,9 @@ class GIF:
     @staticmethod
     def open(
         path: Image.Image | BytesIO | str,
-        speed: int = 1,
         *,
+        duration: int | None = None,
+        speed: int = 1,
         default_font_path: str | Path | None = None,
         save_path: (
             str | bytes | PathLike[str] | PathLike[bytes] | BytesIO | None
@@ -624,7 +640,20 @@ class GIF:
         debug_path: str | Path | None = None,
         progress_bar: bool = True,
     ) -> "GIF":
-        generator = GIF.extract_gif_frames(path, speed)
+        """
+
+        :param path:
+        :param duration:
+        :param speed:
+        :param default_font_path:
+        :param save_path:
+        :param loop:
+        :param debug:
+        :param debug_path:
+        :param progress_bar:
+        :return:
+        """
+        generator = GIF.extract_gif_frames(path, duration=duration, speed=speed)
         frames = []
         durations = []
         for frame, duration in generator:

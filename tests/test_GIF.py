@@ -55,7 +55,7 @@ def test_GIF(num: int, loop: int, repeat: int):
             temp_gif.add_text_fragment("gif 2", repeat=repeat)
 
         temp_file.seek(0)
-        gif.add_gif_fragment(temp_file, repeat=repeat)
+        gif.add_gif_fragment(temp_file, duration=20, repeat=repeat)
 
     # gif.save(f"tests/result_images/test_GIF/{num}/test_GIF_{num}.gif")
     assert compare_gif(gif, f"tests/result_images/test_GIF/{num}/test_GIF_{num}.gif")
@@ -80,3 +80,11 @@ def test_extract_gif():
         )
         == 323
     )
+
+
+def test_open():
+    gif = GIF.open(
+        "tests/result_images/test_GIF/1/test_GIF_1.gif",
+        progress_bar=False,
+    )
+    assert compare_gif(gif, "tests/result_images/test_GIF/1/test_GIF_1.gif")
