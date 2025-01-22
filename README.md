@@ -2,7 +2,7 @@
 # GIF generator with a running text line
 
 [![Tests](https://github.com/EgorKhabarov/RunningTextGifGenerator/actions/workflows/tests.yml/badge.svg)](https://github.com/EgorKhabarov/RunningTextGifGenerator/actions/workflows/tests.yml)
-[![Code coverage Status](https://codecov.io/gh/EgorKhabarov/RunningTextGifGenerator/branch/master/graph/badge.svg)](https://codecov.io/gh/EgorKhabarov/RunningTextGifGenerator)
+[![Code coverage Status](https://codecov.io/github/EgorKhabarov/RunningTextGifGenerator/branch/master/graph/badge.svg)](https://codecov.io/github/EgorKhabarov/RunningTextGifGenerator)
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![mypy checked](https://img.shields.io/badge/mypy-checked-blue)](https://github.com/python/mypy)

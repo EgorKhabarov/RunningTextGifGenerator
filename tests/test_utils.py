@@ -24,6 +24,18 @@ def test_utils():
         is False
     )
 
+    assert (
+        compare_gif(
+            GIF.open(
+                "tests/result_images/test_direction/1/test_direction_1_True_True.gif",
+                progress_bar=False,
+                duration=20,
+            ),
+            "tests/result_images/test_direction/2/test_direction_2_True_False.gif",
+        )
+        is False
+    )
+
     gif1 = GIF(progress_bar=False)
     gif1.add_text_fragment("text", outro=False)
 
