@@ -4,11 +4,12 @@ from io import BytesIO
 from os import PathLike
 from pathlib import Path
 from typing import Callable, Generator, Any, Literal
+from copy import deepcopy
 
 from PIL import Image, ImageDraw, ImageFont
 
 
-color_config = {
+global_color_config = {
     "color_border": "#000000",
     "color_background": "#222222",
     "color_glare": "#666666",
@@ -35,7 +36,7 @@ print_progress_bar = __print_progress_bar__
 
 
 class GIF:
-    color_config: dict[str, str] = color_config
+    global_color_config: dict[str, str] = global_color_config
     default_font_path: str = "./fonts/Monocraft.otf"
     __debug_path: str = "debug_image_frame_{fragment_index}.png"
 
@@ -81,6 +82,7 @@ class GIF:
         if debug_path is not None:
             self.debug_path = debug_path
         self.progress_bar = progress_bar
+        self.color_config: dict[str, str] = deepcopy(self.global_color_config)
         self._fragments: list[
             tuple[
                 Generator[Image.Image, Any, None] | list[Image.Image],
@@ -147,21 +149,21 @@ class GIF:
         draw.rounded_rectangle(
             (0, 0, columns_pixels - 1, rows_pixels - 1),
             radius=7,
-            fill=color_config["color_border"],
+            fill=self.color_config["color_border"],
         )
         # background
         draw.rectangle(
             (5, 5, columns_pixels - 6, rows_pixels - 6),
-            color_config["color_background"],
+            self.color_config["color_background"],
         )
         # glare
         draw.line(
             (6, rows_pixels - 6, columns_pixels - 7, rows_pixels - 6),
-            color_config["color_glare"],
+            self.color_config["color_glare"],
         )
         draw.line(
             (columns_pixels - 6, 6, columns_pixels - 6, rows_pixels - 7),
-            color_config["color_glare"],
+            self.color_config["color_glare"],
         )
 
         # pixels
