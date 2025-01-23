@@ -20,6 +20,14 @@ pip install -r requirements.txt
 
 ---
 
+```shell
+git submodule add https://github.com/EgorKhabarov/RunningTextGifGenerator
+git submodule update --remote
+pip install -r RunningTextGifGenerator/requirements.txt
+```
+
+---
+
 ```python
 from gif import GIF
 gif = GIF()
