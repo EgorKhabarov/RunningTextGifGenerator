@@ -3,8 +3,8 @@ import itertools
 from io import BytesIO
 from os import PathLike
 from pathlib import Path
-from typing import Callable, Generator, Any, Literal
 from copy import deepcopy
+from typing import Callable, Generator, Any, Literal
 
 from PIL import Image, ImageDraw, ImageFont
 
