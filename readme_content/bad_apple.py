@@ -1,6 +1,7 @@
 """
 Download zip from https://github.com/Felixoofed/badapple-frames/blob/main/frames.zip
 """
+
 import io
 import math
 import zipfile
